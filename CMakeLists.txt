@@ -8,4 +8,4 @@ find_package(OpenCV 4.2 REQUIRED)
 add_executable(AthleteDetectionProject main.cpp)
 
 target_link_libraries(AthleteDetectionProject ${OpenCV_LIBS})
-target_include_directories(AthleteDetectionProject PRIVATE ./input_files)
+target_include_directories(AthleteDetectionProject PRIVATE ./input_files PRIVATE ./output_files PRIVATE ./pose)
