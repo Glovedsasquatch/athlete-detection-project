@@ -11,6 +11,7 @@
 std::string current_dir;
 std::string input_filepath;
 std::string output_filepath;
+std::string output_data_file;
 
 int FRAME_WIDTH;
 int FRAME_HEIGHT;
@@ -47,6 +48,7 @@ void process_video_file::executeVideoProcessing(int video_processing_option)
     }
     FILE.close();
     output_filepath = output_filepath + temp_string;
+    output_data_file = output_filepath;
 
     cv::VideoCapture cap(input_filepath);
     if(!cap.isOpened())
@@ -55,42 +57,55 @@ void process_video_file::executeVideoProcessing(int video_processing_option)
         exit(EXIT_FAILURE);
     }
 
+    //Frame specifications
     FRAME_WIDTH = (int)cap.get(cv::CAP_PROP_FRAME_WIDTH);
     FRAME_HEIGHT = (int)cap.get(cv::CAP_PROP_FRAME_HEIGHT);
     FRAME_ASPECT_RATIO = ((double)FRAME_WIDTH)/FRAME_HEIGHT;
 
+    //Setting up the output paths for the video and the data file based on the video processing options
     if(video_processing_option == 1)
     {
         output_filepath = output_filepath + "_pose_estimation" + attributes_pose_estimation::scheme + ".avi";
+        output_data_file = output_data_file + "_datafile_pose_estimation" + attributes_pose_estimation::scheme + ".txt";
     }
     else if(video_processing_option == 2)
     {
         output_filepath = output_filepath + "_bounding_box.avi";
-        attributes_object_detection::setParams(FRAME_ASPECT_RATIO);
-    }
-    else
-    {
-        output_filepath = output_filepath + "_pose_estimation_" + attributes_pose_estimation::scheme + "_bounding_box.avi";
+        output_data_file = output_data_file + "_datafile_obj_detection.txt";
         attributes_object_detection::setParams(FRAME_ASPECT_RATIO);
     }
 
-    cv::Mat frame, output_frame;
+    //Object to write the output video file
     cv::VideoWriter video(output_filepath,
                           cv::VideoWriter::fourcc('M', 'J', 'P', 'G'),
                           10,
                           cv::Size(FRAME_WIDTH, FRAME_HEIGHT));
 
-    // Configuring pose-estimation neural network objects
+    cv::Mat frame, output_frame;
+
+    // Configuring pose-estimation neural network model objects
     cv::dnn::Net pose_net = cv::dnn::readNetFromCaffe(attributes_pose_estimation::proto_file,
                                                       attributes_pose_estimation::weights_file);
     pose_net.setPreferableBackend(cv::dnn::DNN_TARGET_CPU);
 
-    // Configuring object-detection histogram-of-gradient objects
+    // Configuring object-detection histogram-of-gradient model objects
     cv::HOGDescriptor obj_detection_hog;
     obj_detection_hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
 
+    std::ofstream DATA;
+
     if(video_processing_option == 1)
     {
+        //prepare output data file
+        DATA.open(output_data_file, std::ios_base::app);
+        DATA << "# -1 value occurring for any coordinate denotes a point outside the image; \n#";
+        for(int index = 0; index < attributes_pose_estimation::n_points; index++)
+        {
+            DATA << "Point_" << index << ".x\t" << "Point_" << index << ".y\t" ;
+        }
+        DATA << std::endl;
+        DATA.close();
+
         while (cv::waitKey(1) < 0)
         {
             cap >> frame;
@@ -108,6 +123,15 @@ void process_video_file::executeVideoProcessing(int video_processing_option)
     }
     else if(video_processing_option == 2)
     {
+        //prepare output data file
+        DATA.open(output_data_file, std::ios_base::app);
+        DATA << "#Every line of the file has entries appearing in multiple of fours, i.e., quadruplets, specifying a rectangle (bounding box). \n"
+             << "#In each quadruple, first two values corresponds to the x and y coordinates of the top left of the rectangle" \
+             << " and the last two values correspond to the width and height of the corresponding rectangle.\n"
+             << "#Blank lines correspond to no suitable bounding box found corresponding to a input video frame";
+        DATA << std::endl;
+
+
         while (cv::waitKey(1) < 0)
         {
             cap >> frame;
@@ -134,11 +158,15 @@ void process_video_file::executeVideoProcessing(int video_processing_option)
                 r.y += cvRound(r.height*0.07);
                 r.height = cvRound(r.height*0.8);
                 rectangle(output_frame, r.tl(), r.br(), cv::Scalar(0, 255, 0), 2);
+
+                DATA << r.x << "\t" << r.y << "\t" << r.width << "\t" << r.height << "\t";
             }
+            DATA << std::endl;
 
             cv::imshow("Output Video", output_frame);
             video.write(output_frame);
         }
+        DATA.close();
     }
 
     cap.release();
@@ -161,6 +189,9 @@ cv::Mat process_video_file::estimatePose(cv::Mat frame, cv::dnn::Net pose_net, i
 
     int H = output.size[2];
     int W = output.size[3];
+
+    static std::ofstream data_file;
+    data_file.open(output_data_file, std::ios_base::app);
 
     std::vector<cv::Point> points(attributes_pose_estimation::n_points);
     for(int n = 0; n < attributes_pose_estimation::n_points; n++)
@@ -188,7 +219,10 @@ cv::Mat process_video_file::estimatePose(cv::Mat frame, cv::dnn::Net pose_net, i
                     cv::Scalar(0, 0, 255), 1);
         }
         points[n] = p;
+        data_file << p.x << "\t" << p.y <<"\t";
     }
+    data_file << std::endl;
+    data_file.close();
 
     int n_pairs = sizeof(attributes_pose_estimation::POSE_PAIRS)/sizeof(attributes_pose_estimation::POSE_PAIRS[0]);
 

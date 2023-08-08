@@ -62,8 +62,8 @@ where the features smudge from one frame into the next. The model would yield a 
 result along with better feature extraction algorithms.
 
 ## Platform Dependencies and Code Execution
-> - Development IDE: **CLion** (likely also to work with Visual Studio code but macros such as
-__FILE__ may behave erratically)
+> - Development IDE: **CLion** (works with Visual Studio code but ``current_directory``
+> path has to be set manually in the code)
 > - OS: **Ubuntu 18.04 (Bionic Beaver)**
 > - OpenCV Framework: **version 4.2.0**
 > - CMake version: **version 3.25 or higher**
@@ -85,6 +85,18 @@ __FILE__ may behave erratically)
 > - Execution command:
 >> 1. for CLion _**(recommended)**_: simply open the project in CLion and build and run (or in case of
 >> a default keymap, press **Ctrl+Shift+X** to execute)
->> 2. for Visual Studio _**(not recommended)**_:
+>> 2. for Visual Studio:
+>>- manually set the filepath ``current_dir`` in ``processingdata.cpp``, and ``proto_file``
+>>and ``weights_files`` in ``commons.h``; ``current_directory/``: implies the path 
+>>containing ``main.cpp``
 >>- ``~$ g++ main.cpp processing_data.cpp -o execute_athlete_detection `pkg-config --cflags --libs opencv opencv4` ``
 >>- ``~$ ./execute_athlete_detection``
+
+### Additional Comments
+- Any video with good contrast, an athlete moving with face directly towards the camera,
+would yield the best result. In this case, video ``#03 Zaheer Khan Bowling Action.mp4``
+generates the best results.
+- Other videos are put to show limitations of the models (although they may show equally 
+good results).
+- ``CUDA`` acceleration has not been provided because of lack of relevant hardware to
+test its features.

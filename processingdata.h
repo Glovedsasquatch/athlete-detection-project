@@ -13,12 +13,12 @@ namespace process_video_file
 
     void executeVideoProcessing(int processing_option);
 
+    cv::Mat estimatePose(cv::Mat frame, cv::dnn::Net pose_net, int frame_width, int frame_height);
+
     void detectAthleteWithBoundingBox(
             cv::Mat frame,
             const cv::HOGDescriptor& obj_detection_hog,
             int frame_width, int frame_height, double frame_aspect_ratio);
-
-    cv::Mat estimatePose(cv::Mat frame, cv::dnn::Net pose_net, int frame_width, int frame_height);
 }
 
 #endif //ATHLETEDETECTIONPROJECT_PROCESSINGDATA_H
