@@ -6,11 +6,12 @@
 #define ATHLETEDETECTIONPROJECT_COMMONS_H
 
 #include <iostream>
-#include <fstream>
+#include <vector>
 #include <map>
+#include <opencv2/opencv.hpp>
 
 #define LINUX
-#define MPI
+#define COCO
 
 namespace attributes_common
 {
@@ -34,7 +35,6 @@ namespace attributes_common
                 }
     #endif
 
-    void isFilepathPresent(const std::string& file_path);
     std::string selectVideoFile();
 }
 
@@ -63,7 +63,8 @@ namespace attributes_pose_estimation
         std::string weights_file =
                 attributes_common::extractRelevantName(__FILE__) + "/pose/mpi/pose_iter_160000.caffemodel";
 
-        int n_points = 15;
+        const int n_points = 15;
+        const std::string scheme = "_MPI";
     #endif
 
     #ifdef COCO
@@ -81,29 +82,30 @@ namespace attributes_pose_estimation
         std::string weights_file =
                 attributes_common::extractRelevantName(__FILE__) + "/pose/coco/pose_iter_440000.caffemodel";
 
-        int n_points = 18;
+        const int n_points = 18;
+        const std::string scheme = "_COCO";
     #endif
+
+    const int MODEL_INPUT_WIDTH = 368;
+    const int MODEL_INPUT_HEIGHT = 368;
+    double THRESHOLD = 0.15;
 }
 
 namespace attributes_object_detection
 {
-    std::vector<std::string> loadClassNames(const std::string& class_list_filepath);
-}
+    // Stride window dimension
+    const int WINDOW_STRIDE_WIDTH = 4;
+    const int WINDOW_STRIDE_HEIGHT = 4;
 
-void attributes_common::isFilepathPresent(const std::string& file_path)
-{
-    std::ifstream file(file_path);
-    if(!file.is_open())
-    {
-        std::cerr << "Filepath " << file_path << " not present. Terminating!";
-        exit(EXIT_FAILURE);
-    }
-    else
-    {
-        std::cout << "Filepath " << file_path << ": CORRECT!" << std::endl;
-    }
-}
+    // Padding for stride window
+    const int WIDTH_PADDING = 32;
+    int HEIGHT_PADDING;
 
+    // Scale factors parameters to optimize filtering of noisy bounding boxes
+    float AREA_SF, WIDTH_SF;
+
+    void setParams(double frame_aspect_ratio);
+}
 
 //========================= FUNCTION DEFINITIONS ==========================================
 std::string attributes_common::selectVideoFile()
@@ -111,12 +113,9 @@ std::string attributes_common::selectVideoFile()
     std::map<int, const std::string> available_videos =
             {
                     {1, "01 Ivanova Borislava Aerobics 2022.mp4"},
-                    {2, "02 Nadal Practice servicing.mp4"},
-                    {3, "03 Usain Bolt Lightspeed.mp4"},
-                    {4, "04 Zaheer Khan Bowling Action.mp4"},
-                    {5, "05 Katerina Stefanidi pole vault.mp4"},
-                    {6, "06 Jang Mi-Ran Weighlifting Beijing Olympics 2008.mp4"},
-                    {7, "07 Usain Bolt Sprinting.mp4"}
+                    {2, "02 Usain Bolt Lightspeed.mp4"},
+                    {3, "03 Zaheer Khan Bowling Action.mp4"},
+                    {4, "04 Jang Mi-Ran Weighlifting Beijing Olympics 2008.mp4"},
             };
 
     int choice = 0;
@@ -154,7 +153,7 @@ std::string attributes_common::selectVideoFile()
         }
         catch (...)
         {
-            std::cout << "Invalid choice. Choose 1, 2, or 3!" << std::endl;
+            std::cout << "Invalid choice. Choose amongst options 1 through " << available_videos.size() << "!" << std::endl;
             scanned_value.clear();
             continue;
         }
@@ -163,19 +162,20 @@ std::string attributes_common::selectVideoFile()
     return video_file;
 }
 
-std::vector<std::string> attributes_object_detection::loadClassNames(const std::string& class_list_filepath)
+void attributes_object_detection::setParams(double frame_aspect_ratio)
 {
-    attributes_common::isFilepathPresent(class_list_filepath);
-    std::ifstream file(class_list_filepath);
-
-    std::string current_line;
-    std::vector<std::string> class_names;
-    while(getline(file, current_line))
+    if(frame_aspect_ratio < 0.7)
     {
-        class_names.push_back(current_line);
+        AREA_SF = 0.2;
+        WIDTH_SF = 0.1;
+    }
+    else
+    {
+        AREA_SF = 0.05;
+        WIDTH_SF = 0.05;
     }
 
-    return class_names;
+    HEIGHT_PADDING = (int)(WIDTH_PADDING/frame_aspect_ratio);
 }
 
 #endif //ATHLETEDETECTIONPROJECT_COMMONS_H
