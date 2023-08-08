@@ -83,9 +83,14 @@ result along with better feature extraction algorithms.
 >> - ``pose/``: contains the pre-trained model files
 >> - ``output_files/``: path to where all the output files are written to
 > - Execution command:
->> 1. for CLion _**(recommended)**_: simply open the project in CLion and build and run (or in case of
+>> 1. Download the following files from the link prescribed:
+>> - **Pose-model trained on COCO** from [here](https://www.dropbox.com/s/2h2bv29a130sgrk/pose_iter_440000.caffemodel)
+>> and place it in ``./pose/coco/``
+>> - **Pose-model trained on MPI** from [here](https://www.dropbox.com/s/drumc6dzllfed16/pose_iter_160000.caffemodel)
+>> and place it in ``./pose/mpi/``
+>> 2. **for CLion _(recommended)_**: simply open the project in CLion and build and run (or in case of
 >> a default keymap, press **Ctrl+Shift+X** to execute)
->> 2. for Visual Studio:
+>> 3. for Visual Studio:
 >>- manually set the filepath ``current_dir`` in ``processingdata.cpp``, and ``proto_file``
 >>and ``weights_files`` in ``commons.h``; ``current_directory/``: implies the path 
 >>containing ``main.cpp``
